@@ -11,7 +11,7 @@ import ObjectMapper
 // Note: once something in the chain is StaticMappable, then all need to be StaticMappable
 
 open class HotPotatoMessage : StaticMappable {
-    static open let protocolVersion = 1
+    static public let protocolVersion = 1
     var type: String? // sub-struct name ie. "Start"
 
     open class func objectForMapping(map: Map) -> BaseMappable? {

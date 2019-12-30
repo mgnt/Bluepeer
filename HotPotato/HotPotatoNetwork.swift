@@ -116,7 +116,7 @@ open class HotPotatoNetwork: CustomStringConvertible {
     fileprivate var pendingPotatoHotPotatoMessage: PotatoHotPotatoMessage? // if not nil, then the next received data is the potato's data payload
     
     // TELLING PEERS TO PAUSE ME WHEN I GO TO BACKGROUND. I send a PauseMeMessage, wait for responses from connected peers, then end bgTask
-    fileprivate var backgroundTask = UIBackgroundTaskInvalid // if not UIBackgroundTaskInvalid, then we backgrounded a live session
+    fileprivate var backgroundTask = UIBackgroundTaskIdentifier.invalid // if not UIBackgroundTaskInvalid, then we backgrounded a live session
     fileprivate var pauseMeMessageID = 0
     fileprivate var pauseMeMessageNumExpectedResponses = 0
     fileprivate var pauseMeMessageResponsesSeen = 0
@@ -129,9 +129,9 @@ open class HotPotatoNetwork: CustomStringConvertible {
         self.networkName = networkName
         self.dataVersion = DateFormatter.ISO8601DateFormatter().string(from: dataVersion)
         self.potatoTimerSeconds = timeout
-        NotificationCenter.default.addObserver(self, selector: #selector(didEnterBackground), name: Notification.Name.UIApplicationDidEnterBackground, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(willEnterForeground), name: Notification.Name.UIApplicationWillEnterForeground, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(didBecomeActive), name: Notification.Name.UIApplicationDidBecomeActive, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(didEnterBackground), name: UIApplication.didEnterBackgroundNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(willEnterForeground), name: UIApplication.willEnterForegroundNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(didBecomeActive), name: UIApplication.didBecomeActiveNotification, object: nil)
     }
     
     deinit {
@@ -188,7 +188,7 @@ open class HotPotatoNetwork: CustomStringConvertible {
         
         guard bluepeer.connectedPeers().count > 0 else {
             self.logDelegate?.logString("HPN: didEnterBackground() with live session but NO CONNECTED PEERS, no-op")
-            self.backgroundTask = 10 // Must be anything != UIBackgroundTaskInvalid
+            self.backgroundTask = UIBackgroundTaskIdentifier(rawValue: 10) // Must be anything != UIBackgroundTaskInvalid
             return
         }
         self.backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "HotPotatoNetwork") {
@@ -205,8 +205,8 @@ open class HotPotatoNetwork: CustomStringConvertible {
     }
     
     @objc fileprivate func willEnterForeground() {
-        guard self.backgroundTask != UIBackgroundTaskInvalid, self.state != .buildup, state != .finished, let _ = self.bluepeer else { return }
-        self.backgroundTask = UIBackgroundTaskInvalid
+        guard self.backgroundTask != UIBackgroundTaskIdentifier.invalid, self.state != .buildup, state != .finished, let _ = self.bluepeer else { return }
+        self.backgroundTask = UIBackgroundTaskIdentifier.invalid
         self.didSeeWillEnterForeground = true
     }
     
@@ -434,7 +434,7 @@ open class HotPotatoNetwork: CustomStringConvertible {
     }
     
     fileprivate func restartPotatoTimer() {
-        guard self.backgroundTask == UIBackgroundTaskInvalid else { return } // don't reschedule the timer when we're in the background
+        guard self.backgroundTask == UIBackgroundTaskIdentifier.invalid else { return } // don't reschedule the timer when we're in the background
         
         if let timer = self.potatoTimer {
             timer.invalidate()
@@ -481,7 +481,7 @@ open class HotPotatoNetwork: CustomStringConvertible {
         // if we're disconnected, then consider this a reconnection
         self.state = .live
         
-        guard self.backgroundTask == UIBackgroundTaskInvalid else {
+        guard self.backgroundTask == UIBackgroundTaskIdentifier.invalid else {
             self.logDelegate?.logString("HPN: WARNING, got potato in background, passing it off quickly...")
             self.passPotato()
             return
